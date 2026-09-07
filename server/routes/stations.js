@@ -3,6 +3,7 @@ import Station from '../models/Station.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
+const stationFields = ['name', 'address', 'latitude', 'longitude', 'phone', 'openingTime', 'closingTime', 'cngPrice', 'totalPumps', 'totalSlots', 'availableSlots', 'averageServiceMinutes', 'status'];
 
 router.get('/', protect, async (req, res) => {
   try {
@@ -28,18 +29,20 @@ router.get('/:id', protect, async (req, res) => {
   } catch (error) { res.status(400).json({ message: 'Invalid station id' }); }
 });
 
-// Only the system administrator can create/delete stations. Station admins manage their assigned station.
 router.post('/', protect, authorize('system_admin'), async (req, res) => {
-  try { const station = await Station.create(req.body); res.status(201).json({ station }); }
-  catch (error) { res.status(400).json({ message: 'Unable to create station', error: error.message }); }
+  try {
+    const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => stationFields.includes(key)));
+    const station = await Station.create(updates);
+    res.status(201).json({ station });
+  } catch (error) { res.status(400).json({ message: 'Unable to create station', error: error.message }); }
 });
 
 router.put('/:id', protect, authorize('station_admin', 'system_admin'), async (req, res) => {
   try {
-    if (req.user.role === 'station_admin' && String(req.user.stationId) !== String(req.params.id)) {
-      return res.status(403).json({ message: 'You can only manage your assigned station.' });
-    }
-    const station = await Station.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    if (req.user.role === 'station_admin' && String(req.user.stationId) !== String(req.params.id)) return res.status(403).json({ message: 'You can only manage your assigned station.' });
+    const allowed = req.user.role === 'system_admin' ? [...stationFields, 'approved'] : stationFields;
+    const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+    const station = await Station.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     if (!station) return res.status(404).json({ message: 'Station not found' });
     res.json({ station });
   } catch (error) { res.status(400).json({ message: 'Unable to update station', error: error.message }); }
