@@ -41,9 +41,13 @@ router.post('/', protect, authorize('system_admin'), async (req, res) => {
 router.put('/:id', protect, authorize('station_admin', 'system_admin'), async (req, res) => {
   try {
     const filter = req.user.role === 'station_admin'
+      ? { _id: req.params.id, stationAdminId: req.user.stationId }
+      : { _id: req.params.id };
+    // Station documents do not store an admin id; ownership is represented by User.stationId.
+    const stationFilter = req.user.role === 'station_admin'
       ? { _id: req.params.id, _id: req.user.stationId }
       : { _id: req.params.id };
-    const station = await Station.findOneAndUpdate(filter, req.body, { new: true, runValidators: true });
+    const station = await Station.findOneAndUpdate(stationFilter, req.body, { new: true, runValidators: true });
     if (!station) return res.status(404).json({ message: 'Station not found or not assigned to this admin.' });
     res.json({ station });
   } catch (error) { res.status(400).json({ message: 'Unable to update station', error: error.message }); }
