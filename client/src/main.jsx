@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Stations from './pages/Stations';
+import StationDetails from './pages/StationDetails';
 import Placeholder from './pages/Placeholder';
 
 function HomeRedirect() {
@@ -28,6 +29,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/stations" element={<Stations />} />
+        <Route path="/stations/:id" element={<StationDetails />} />
         <Route path="/book-slot" element={<Placeholder />} />
         <Route path="/bookings" element={<Placeholder />} />
         <Route path="/history" element={<Placeholder />} />
