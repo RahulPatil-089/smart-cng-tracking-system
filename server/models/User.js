@@ -8,11 +8,8 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 6 },
     vehicleNumber: { type: String, required: true, uppercase: true, trim: true },
     vehicleType: { type: String, required: true, trim: true },
-    role: {
-      type: String,
-      enum: ['user', 'station_admin', 'system_admin'],
-      default: 'user'
-    },
+    role: { type: String, enum: ['user', 'station_admin', 'system_admin'], default: 'user' },
+    stationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Station', default: null, index: true },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }
