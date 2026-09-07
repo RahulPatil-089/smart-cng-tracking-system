@@ -1,0 +1,41 @@
+import { useState } from 'react';
+import { CarFront, LayoutDashboard, LogOut, Menu, UserRound, X } from 'lucide-react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+const links = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/stations', label: 'Find Stations' },
+  { to: '/book-slot', label: 'Book Slot' },
+  { to: '/bookings', label: 'My Bookings' },
+  { to: '/history', label: 'History' }
+];
+
+export default function Navbar() {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const roleLabel = user?.role === 'system_admin' ? 'System Admin' : user?.role === 'station_admin' ? 'Station Admin' : 'Vehicle Owner';
+
+  const handleLogout = () => { logout(); setOpen(false); navigate('/login'); };
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+        <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-cng-600 text-white"><CarFront size={21} /></span>
+          <div><div className="font-bold text-ink">Smart CNG</div><div className="text-[11px] font-medium text-slate-500">Tracking & Slot Management</div></div>
+        </Link>
+        <nav className="hidden items-center gap-1 lg:flex">
+          {links.map((link) => <NavLink key={link.to} to={link.to} className={({ isActive }) => `rounded-lg px-3 py-2 text-sm font-semibold ${isActive ? 'bg-cng-50 text-cng-700' : 'text-slate-600 hover:bg-slate-50'}`}>{link.label}</NavLink>)}
+        </nav>
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link to="/profile" className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 hover:bg-slate-50"><UserRound size={17} /><span className="max-w-28 truncate text-sm font-semibold">{user?.name}</span></Link>
+          <button onClick={handleLogout} className="rounded-xl p-2 text-slate-500 hover:bg-red-50 hover:text-red-600" title="Logout"><LogOut size={18} /></button>
+        </div>
+        <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen(!open)} aria-label="Toggle menu">{open ? <X /> : <Menu />}</button>
+      </div>
+      {open && <div className="border-t border-slate-100 px-4 pb-4 lg:hidden"><div className="pt-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{roleLabel}</div>{links.map((link) => <NavLink key={link.to} to={link.to} onClick={() => setOpen(false)} className={({ isActive }) => `mt-1 block rounded-lg px-3 py-3 text-sm font-semibold ${isActive ? 'bg-cng-50 text-cng-700' : 'text-slate-600'}`}>{link.label}</NavLink>)}<NavLink to="/profile" onClick={() => setOpen(false)} className="mt-1 block rounded-lg px-3 py-3 text-sm font-semibold text-slate-600">Profile</NavLink><button onClick={handleLogout} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-sm font-semibold text-red-600"> <LogOut size={17}/> Logout</button></div>}
+    </header>
+  );
+}
