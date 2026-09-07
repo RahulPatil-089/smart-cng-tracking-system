@@ -1,28 +1,39 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import './styles.css';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import './index.css';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import MainLayout from './layouts/MainLayout';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import Placeholder from './pages/Placeholder';
 
-function App() {
-  return (
-    <main className="app">
-      <section className="hero">
-        <div className="badge">SMART CNG TRACKING SYSTEM</div>
-        <h1>Find CNG Stations.<br />Avoid Long Queues.<br /><span>Refuel Smarter.</span></h1>
-        <p>Locate nearby CNG stations, check availability and reserve your refueling slot in advance.</p>
-        <div className="actions">
-          <button>Find CNG Station</button>
-          <button className="secondary">Book a Slot</button>
-        </div>
-      </section>
-      <section className="status">
-        <div><strong>Stage 1</strong><span>Project foundation & authentication</span></div>
-        <div><strong>API</strong><span>Express + MongoDB ready</span></div>
-        <div><strong>Auth</strong><span>JWT + role-based access</span></div>
-      </section>
-    </main>
-  );
+function HomeRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="grid min-h-screen place-items-center bg-slate-50 text-slate-500">Loading Smart CNG...</div>;
+  return <Navigate to={user ? '/dashboard' : '/login'} replace />;
 }
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode><App /></React.StrictMode>
-);
+function App() {
+  return <Routes>
+    <Route path="/" element={<HomeRedirect />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/register" element={<Register />} />
+    <Route element={<ProtectedRoute />}>
+      <Route element={<MainLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/stations" element={<Placeholder />} />
+        <Route path="/book-slot" element={<Placeholder />} />
+        <Route path="/bookings" element={<Placeholder />} />
+        <Route path="/history" element={<Placeholder />} />
+      </Route>
+    </Route>
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>;
+}
+
+createRoot(document.getElementById('root')).render(<React.StrictMode><BrowserRouter><AuthProvider><App /></AuthProvider></BrowserRouter></React.StrictMode>);
