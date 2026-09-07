@@ -32,14 +32,21 @@ router.get('/:id', protect, async (req, res) => {
   } catch (error) { res.status(400).json({ message: 'Invalid station id' }); }
 });
 
-router.post('/', protect, authorize('station_admin', 'system_admin'), async (req, res) => {
+// Station admins manage only their assigned station. System admins can create stations.
+router.post('/', protect, authorize('system_admin'), async (req, res) => {
   try { const station = await Station.create(req.body); res.status(201).json({ station }); }
   catch (error) { res.status(400).json({ message: 'Unable to create station', error: error.message }); }
 });
 
 router.put('/:id', protect, authorize('station_admin', 'system_admin'), async (req, res) => {
-  try { const station = await Station.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }); if (!station) return res.status(404).json({ message: 'Station not found' }); res.json({ station }); }
-  catch (error) { res.status(400).json({ message: 'Unable to update station', error: error.message }); }
+  try {
+    const filter = req.user.role === 'station_admin'
+      ? { _id: req.params.id, _id: req.user.stationId }
+      : { _id: req.params.id };
+    const station = await Station.findOneAndUpdate(filter, req.body, { new: true, runValidators: true });
+    if (!station) return res.status(404).json({ message: 'Station not found or not assigned to this admin.' });
+    res.json({ station });
+  } catch (error) { res.status(400).json({ message: 'Unable to update station', error: error.message }); }
 });
 
 router.delete('/:id', protect, authorize('system_admin'), async (req, res) => {
