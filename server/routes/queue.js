@@ -20,6 +20,11 @@ async function refreshStationQueue(stationId) {
   return active;
 }
 
+async function canManageQueue(req, stationId) {
+  if (req.user.role === 'system_admin') return true;
+  return req.user.role === 'station_admin' && req.user.stationId?.toString() === stationId.toString();
+}
+
 router.get('/stations/:id/queue', protect, async (req, res, next) => {
   try {
     const station = await Station.findById(req.params.id).select('name queueLength averageServiceMinutes');
@@ -34,6 +39,7 @@ router.post('/stations/:id/queue', protect, async (req, res, next) => {
   try {
     const station = await Station.findById(req.params.id);
     if (!station) return res.status(404).json({ message: 'Station not found.' });
+    if (!station.approved) return res.status(400).json({ message: 'This station is not approved.' });
     if (station.status === 'Closed') return res.status(400).json({ message: 'This station is closed.' });
     const existing = await Queue.findOne({ stationId: station._id, userId: req.user._id, status: { $in: ['Waiting', 'Refueling'] } });
     if (existing) return res.status(409).json({ message: 'You are already in this station queue.', queue: existing });
@@ -48,7 +54,8 @@ router.delete('/queue/:id', protect, async (req, res, next) => {
   try {
     const queue = await Queue.findById(req.params.id);
     if (!queue) return res.status(404).json({ message: 'Queue entry not found.' });
-    if (queue.userId.toString() !== req.user._id.toString() && !['station_admin', 'system_admin'].includes(req.user.role)) return res.status(403).json({ message: 'Not authorized.' });
+    const isOwner = queue.userId.toString() === req.user._id.toString();
+    if (!isOwner && !(await canManageQueue(req, queue.stationId))) return res.status(403).json({ message: 'Not authorized.' });
     queue.status = 'Cancelled';
     await queue.save();
     await refreshStationQueue(queue.stationId);
@@ -60,6 +67,7 @@ router.put('/queue/:id/status', protect, authorize('station_admin', 'system_admi
   try {
     const queue = await Queue.findById(req.params.id);
     if (!queue) return res.status(404).json({ message: 'Queue entry not found.' });
+    if (!(await canManageQueue(req, queue.stationId))) return res.status(403).json({ message: 'You can only manage your assigned station queue.' });
     if (!['Waiting', 'Refueling', 'Completed', 'Cancelled'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid queue status.' });
     queue.status = req.body.status;
     await queue.save();
