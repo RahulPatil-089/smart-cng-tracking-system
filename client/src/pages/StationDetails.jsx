@@ -17,7 +17,7 @@ export default function StationDetails() {
 
   const loadStation = async () => { const { data } = await api.get(`/stations/${id}`); setStation(data.station); };
   const loadQueue = async () => {
-    try { const { data } = await api.get(`/stations/${id}/queue`); setQueue(data.queue || []); setQueueError(''); }
+    try { setQueueLoading(true); const { data } = await api.get(`/stations/${id}/queue`); setQueue(data.queue || []); setQueueError(''); }
     catch (e) { setQueueError(e.response?.data?.message || 'Unable to load live queue.'); }
     finally { setQueueLoading(false); }
   };
@@ -41,7 +41,7 @@ export default function StationDetails() {
   if (!station) return <div className="mx-auto max-w-7xl px-4 py-16 text-center"><p className="font-semibold text-red-600">Unable to load station.</p><Link to="/stations" className="mt-4 inline-flex font-bold text-cng-600">Back to stations</Link></div>;
   const wait = station.queueLength * (station.averageServiceMinutes || 8);
   const destination = `${station.latitude},${station.longitude}`;
-  const myQueue = queue.find(q => q.userId?._id?.toString() === user?._id?.toString());
+  const myQueue = queue.find(q => q.userId?._id?.toString() === user?.id?.toString());
 
   return <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     <Link to="/stations" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-cng-600"><ArrowLeft size={17}/> Back to stations</Link>
