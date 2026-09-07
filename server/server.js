@@ -7,6 +7,7 @@ import userRoutes from './routes/users.js';
 import stationRoutes from './routes/stations.js';
 import bookingRoutes from './routes/bookings.js';
 import queueRoutes from './routes/queue.js';
+import adminRoutes from './routes/admin.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -18,6 +19,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/stations', stationRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api', queueRoutes);
+app.use('/api/admin', adminRoutes);
 app.use((err, _req, res, _next) => { console.error(err); res.status(500).json({ message: 'Internal server error' }); });
 
 async function start() {
