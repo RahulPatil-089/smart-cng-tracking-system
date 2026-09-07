@@ -10,6 +10,13 @@ const router = express.Router();
 const ACTIVE = ['Pending', 'Confirmed'];
 const CANCELLATION_MINUTES = 15;
 
+function localDateString(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 router.get('/slots/:stationId', protect, async (req, res) => {
   try {
     const station = await Station.findOne({ _id: req.params.stationId, approved: true }).lean();
@@ -32,10 +39,11 @@ router.post('/', protect, async (req, res) => {
   try {
     const { stationId, slotId, bookingDate, startTime, endTime } = req.body;
     if (!stationId || !slotId || !bookingDate || !startTime || !endTime) return res.status(400).json({ message: 'Station, slot, date and time are required' });
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateString();
     if (bookingDate < today) return res.status(400).json({ message: 'Booking date cannot be in the past' });
     if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return res.status(400).json({ message: 'Invalid booking time' });
     if (startTime >= endTime) return res.status(400).json({ message: 'End time must be after start time' });
+    if (bookingDate === today && new Date(`${bookingDate}T${startTime}:00`).getTime() <= Date.now()) return res.status(400).json({ message: 'The selected time has already passed. Choose a future slot.' });
 
     const station = await Station.findOne({ _id: stationId, approved: true });
     if (!station) return res.status(404).json({ message: 'Station not found' });
