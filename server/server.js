@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: new URL('./.env', import.meta.url) });
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
