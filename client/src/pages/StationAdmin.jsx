@@ -1,36 +1,35 @@
 import { useEffect, useState } from 'react';
-import { BarChart3, CheckCircle2, Clock3, Fuel, Search, Users, XCircle } from 'lucide-react';
+import { BarChart3, CheckCircle2, Clock3, Fuel, Save, Search, Users, XCircle } from 'lucide-react';
 import api from '../services/api';
 
 export default function StationAdmin() {
-  const [data, setData] = useState(null), [analytics, setAnalytics] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState('');
+  const [data, setData] = useState(null), [analytics, setAnalytics] = useState(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [savingProfile, setSavingProfile] = useState(false);
   const [verifyId, setVerifyId] = useState(''), [verified, setVerified] = useState(null), [verifyLoading, setVerifyLoading] = useState(false);
+  const [profile, setProfile] = useState({name:'',address:'',phone:'',openingTime:'',closingTime:'',cngPrice:''});
 
   const load = async () => {
     try {
       setLoading(true); setError('');
       const [dashboard, chart] = await Promise.all([api.get('/admin/dashboard'), api.get('/admin/analytics?days=7')]);
       setData(dashboard.data); setAnalytics(chart.data);
+      const s = dashboard.data.station; setProfile({name:s.name,address:s.address,phone:s.phone,openingTime:s.openingTime,closingTime:s.closingTime,cngPrice:s.cngPrice});
     } catch (e) { setError(e.response?.data?.message || 'Unable to load station dashboard.'); }
     finally { setLoading(false); }
   };
   useEffect(() => { load(); const timer = setInterval(load, 30000); return () => clearInterval(timer); }, []);
 
   const update = async (url, body) => { try { await api.put(url, body); await load(); } catch (e) { setError(e.response?.data?.message || 'Update failed.'); } };
-  const verify = async (e) => {
-    e.preventDefault();
-    if (!verifyId.trim()) return;
-    try { setVerifyLoading(true); setVerified(null); setError(''); const { data: result } = await api.get(`/admin/bookings/verify/${encodeURIComponent(verifyId.trim())}`); setVerified(result.booking); }
-    catch (e) { setError(e.response?.data?.message || 'Booking could not be verified.'); }
-    finally { setVerifyLoading(false); }
-  };
+  const saveProfile = async e => { e.preventDefault(); try { setSavingProfile(true); setError(''); await api.put(`/stations/${data.station._id}`, {...profile, cngPrice:Number(profile.cngPrice)}); await load(); } catch (e) { setError(e.response?.data?.message || 'Unable to update station profile.'); } finally { setSavingProfile(false); } };
+  const verify = async e => { e.preventDefault(); if (!verifyId.trim()) return; try { setVerifyLoading(true); setVerified(null); setError(''); const { data: result } = await api.get(`/admin/bookings/verify/${encodeURIComponent(verifyId.trim())}`); setVerified(result.booking); } catch (e) { setError(e.response?.data?.message || 'Booking could not be verified.'); } finally { setVerifyLoading(false); } };
 
   if (loading) return <div className="mx-auto max-w-7xl px-4 py-16 text-center text-slate-500">Loading station control center...</div>;
   const maxDaily = Math.max(...(analytics?.daily || []).map(d => d.total), 1);
   return <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <div className="mb-7"><p className="text-sm font-bold uppercase tracking-wider text-cng-600">Station Admin</p><h1 className="mt-1 text-3xl font-extrabold">{data?.station?.name || 'Station control center'}</h1><p className="mt-2 text-slate-500">Manage bookings, pumps, verification and the live queue.</p></div>
+    <div className="mb-7"><p className="text-sm font-bold uppercase tracking-wider text-cng-600">Station Admin</p><h1 className="mt-1 text-3xl font-extrabold">{data?.station?.name || 'Station control center'}</h1><p className="mt-2 text-slate-500">Manage the station profile, bookings, pumps, verification and live queue.</p></div>
     {error && <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</div>}
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Stat icon={<Clock3/>} label="Today's bookings" value={data?.stats?.todayBookings}/><Stat icon={<CheckCircle2/>} label="Completed" value={data?.stats?.completed}/><Stat icon={<XCircle/>} label="Cancelled" value={data?.stats?.cancelled}/><Stat icon={<Users/>} label="Waiting queue" value={data?.stats?.queue}/></div>
+
+    <div className="card mt-7"><h2 className="text-xl font-extrabold">Station profile</h2><p className="mt-1 text-sm text-slate-500">Update the public information customers see.</p><form onSubmit={saveProfile} className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><Field label="Station name" value={profile.name} onChange={v=>setProfile({...profile,name:v})}/><Field label="Phone" value={profile.phone} onChange={v=>setProfile({...profile,phone:v})}/><Field label="CNG price (₹/kg)" type="number" min="0" value={profile.cngPrice} onChange={v=>setProfile({...profile,cngPrice:v})}/><Field label="Opening time" type="time" value={profile.openingTime} onChange={v=>setProfile({...profile,openingTime:v})}/><Field label="Closing time" type="time" value={profile.closingTime} onChange={v=>setProfile({...profile,closingTime:v})}/><Field label="Address" value={profile.address} onChange={v=>setProfile({...profile,address:v})}/><button disabled={savingProfile} className="primary-btn sm:col-span-2 lg:col-span-3 sm:w-fit"><Save size={17}/>{savingProfile?'Saving...':'Save station profile'}</button></form></div>
 
     <div className="mt-7 grid gap-6 lg:grid-cols-[1.35fr_.65fr]">
       <div className="card"><h2 className="text-xl font-extrabold">Today's bookings</h2><div className="mt-5 space-y-3">{data?.bookings?.length ? data.bookings.map(b => <div key={b._id} className="rounded-xl border border-slate-100 p-4"><div className="flex flex-col justify-between gap-3 sm:flex-row"><div><p className="font-bold">{b.bookingId} · {b.userId?.name || 'Customer'}</p><p className="mt-1 text-sm text-slate-500">{b.vehicleNumber} · Pump {b.slotId?.slotNumber || '—'} · {b.startTime}–{b.endTime}</p></div><span className="h-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{b.status}</span></div>{!['Completed','Cancelled'].includes(b.status) && <div className="mt-3 flex gap-2"><button onClick={() => update(`/admin/bookings/${b.bookingId}/status`, {status:'Completed'})} className="rounded-lg bg-cng-600 px-3 py-2 text-xs font-bold text-white">Complete</button><button onClick={() => update(`/admin/bookings/${b.bookingId}/status`, {status:'Cancelled'})} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-600">Cancel</button></div>}</div>) : <p className="py-8 text-center text-sm text-slate-500">No bookings for today.</p>}</div></div>
@@ -46,3 +45,4 @@ export default function StationAdmin() {
   </section>;
 }
 function Stat({icon,label,value}) { return <div className="card flex items-center gap-4"><div className="grid h-11 w-11 place-items-center rounded-xl bg-cng-50 text-cng-600">{icon}</div><div><div className="text-2xl font-extrabold">{value ?? 0}</div><div className="text-sm text-slate-500">{label}</div></div></div>; }
+function Field({label,value,onChange,type='text',min}) { return <label><span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span><input type={type} min={min} value={value} onChange={e=>onChange(e.target.value)} className="input" required/></label>; }
