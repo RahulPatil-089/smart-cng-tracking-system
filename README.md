@@ -1,54 +1,46 @@
 # Smart CNG Tracking & Slot Management System
 
-A full-stack college project for locating CNG stations, checking availability, managing queues, and reserving refueling slots.
+Full-stack college project for locating CNG stations, checking availability, managing queues, and reserving refueling slots.
 
 ## Stack
 - React + Vite
 - Node.js + Express
 - MongoDB + Mongoose
 - JWT authentication
-- OpenStreetMap + Leaflet (planned in later stages)
+- Apple MapKit JS
+- QR-code booking confirmations
 
-## Stage 1
-The initial foundation includes:
-- React/Vite client
-- Express API server
-- MongoDB connection
-- User model with three roles
-- JWT registration/login
-- Protected profile API
-- Environment template
+## Current implementation
+- JWT registration/login and protected profiles
+- Three-role authentication foundation
+- CNG station search and status filtering
+- Apple Maps station markers and user-location control
+- Station detail pages and directions
+- Date/time/pump slot selection
+- Duplicate booking protection for the same pump/date/time
+- MongoDB booking records
+- Booking IDs and QR-code confirmations
+- My Bookings and Booking History
 
 ## Run locally
+Copy `server/.env.example` to `server/.env` and configure MongoDB and JWT. Copy `client/.env.example` to `client/.env` and add your Apple MapKit JS token.
 
-### 1. Configure MongoDB
-Create a local MongoDB database or use a MongoDB Atlas connection string.
-
-Copy `server/.env.example` to `server/.env` and set:
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `CLIENT_URL`
-
-### 2. Install dependencies
 ```bash
 npm install
 npm run install:all
-```
-
-### 3. Start both apps
-```bash
 npm run dev
 ```
 
 Client: http://localhost:5173
 API: http://localhost:5000
-Health check: http://localhost:5000/api/health
+Health: http://localhost:5000/api/health
 
-## API foundation
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `GET /api/users/profile`
-- `PUT /api/users/profile`
+## Booking API
+- `GET /api/bookings/slots/:stationId?date=YYYY-MM-DD`
+- `POST /api/bookings`
+- `GET /api/bookings/my`
+- `GET /api/bookings/:id`
+- `PUT /api/bookings/:id/cancel`
+- `PUT /api/bookings/:id/complete`
 
-The application will be expanded through the remaining stages: station search, maps, booking, queue management, station admin, system admin, responsive UI, and testing.
+Runtime testing still requires running the project locally with MongoDB and the required environment variables.
