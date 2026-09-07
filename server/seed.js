@@ -1,9 +1,12 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 import Station from './models/Station.js';
 import Slot from './models/Slot.js';
+
+// Load the server .env file explicitly so the seed works from any working directory.
+dotenv.config({ path: new URL('./.env', import.meta.url) });
 
 const required = ['MONGODB_URI', 'SEED_ADMIN_EMAIL', 'SEED_ADMIN_PASSWORD', 'SEED_STATION_ADMIN_EMAIL', 'SEED_STATION_ADMIN_PASSWORD'];
 for (const key of required) {
