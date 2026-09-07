@@ -21,9 +21,12 @@ const publicUser = (user) => ({
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, phone, password, vehicleNumber, vehicleType, role } = req.body;
+    const { name, email, phone, password, vehicleNumber, vehicleType } = req.body;
     if (!name || !email || !phone || !password || !vehicleNumber || !vehicleType) {
       return res.status(400).json({ message: 'All registration fields are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -31,15 +34,14 @@ router.post('/register', async (req, res) => {
     if (exists) return res.status(409).json({ message: 'Email is already registered' });
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    const safeRole = ['user', 'station_admin', 'system_admin'].includes(role) ? role : 'user';
     const user = await User.create({
-      name,
+      name: name.trim(),
       email: normalizedEmail,
-      phone,
+      phone: phone.trim(),
       password: hashedPassword,
-      vehicleNumber,
-      vehicleType,
-      role: safeRole
+      vehicleNumber: vehicleNumber.trim().toUpperCase(),
+      vehicleType: vehicleType.trim(),
+      role: 'user'
     });
 
     res.status(201).json({ token: createToken(user._id), user: publicUser(user) });
