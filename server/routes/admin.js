@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Station from '../models/Station.js';
 import Slot from '../models/Slot.js';
 import Booking from '../models/Booking.js';
@@ -12,6 +13,13 @@ async function getStation(req) {
   if (req.user.role === 'system_admin' && req.query.stationId) return Station.findById(req.query.stationId);
   if (req.user.stationId) return Station.findById(req.user.stationId);
   return null;
+}
+
+function bookingLookup(id, stationId) {
+  const idFilter = mongoose.isValidObjectId(id)
+    ? { $or: [{ _id: id }, { bookingId: id }] }
+    : { bookingId: id };
+  return { ...idFilter, stationId };
 }
 
 router.get('/dashboard', async (req, res, next) => {
@@ -92,7 +100,7 @@ router.put('/bookings/:id/status', async (req, res, next) => {
   try {
     const station = await getStation(req);
     if (!station) return res.status(400).json({ message: 'No station is assigned to this admin account.' });
-    const booking = await Booking.findOne({ $or: [{ _id: req.params.id }, { bookingId: req.params.id }], stationId: station._id });
+    const booking = await Booking.findOne(bookingLookup(req.params.id, station._id));
     if (!booking) return res.status(404).json({ message: 'Booking not found.' });
     if (!['Confirmed', 'Completed', 'Cancelled'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid booking status.' });
     booking.status = req.body.status;
