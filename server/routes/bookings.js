@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import mongoose from 'mongoose';
 import QRCode from 'qrcode';
 import Station from '../models/Station.js';
 import Slot from '../models/Slot.js';
@@ -15,6 +16,11 @@ function localDateString(date = new Date()) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function bookingLookup(id, userId, statuses = null) {
+  const idFilter = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { bookingId: id }] } : { bookingId: id };
+  return { ...idFilter, userId, ...(statuses ? { status: { $in: statuses } } : {}) };
 }
 
 router.get('/slots/:stationId', protect, async (req, res) => {
@@ -77,7 +83,7 @@ router.get('/my', protect, async (req, res) => {
 
 router.get('/:id', protect, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ $or: [{ _id: req.params.id }, { bookingId: req.params.id }], userId: req.user._id }).populate('stationId').populate('slotId').lean();
+    const booking = await Booking.findOne(bookingLookup(req.params.id, req.user._id)).populate('stationId').populate('slotId').lean();
     if (!booking) return res.status(404).json({ message: 'Booking not found' });
     res.json({ booking });
   } catch { res.status(404).json({ message: 'Booking not found' }); }
@@ -85,7 +91,7 @@ router.get('/:id', protect, async (req, res) => {
 
 router.put('/:id/cancel', protect, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ $or: [{ _id: req.params.id }, { bookingId: req.params.id }], userId: req.user._id, status: { $in: ACTIVE } });
+    const booking = await Booking.findOne(bookingLookup(req.params.id, req.user._id, ACTIVE));
     if (!booking) return res.status(404).json({ message: 'Active booking not found' });
     if (isCancellationClosed(booking)) return res.status(409).json({ message: `Cancellation closes ${CANCELLATION_MINUTES} minutes before the booking starts.` });
     booking.status = 'Cancelled'; await booking.save();
@@ -95,7 +101,7 @@ router.put('/:id/cancel', protect, async (req, res) => {
 
 router.put('/:id/complete', protect, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ $or: [{ _id: req.params.id }, { bookingId: req.params.id }], userId: req.user._id, status: { $in: ACTIVE } });
+    const booking = await Booking.findOne(bookingLookup(req.params.id, req.user._id, ACTIVE));
     if (!booking) return res.status(404).json({ message: 'Active booking not found' });
     booking.status = 'Completed'; await booking.save();
     res.json({ booking });
