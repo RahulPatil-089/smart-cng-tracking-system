@@ -89,7 +89,8 @@ router.put('/slots/:id', async (req, res, next) => {
     if (!station) return res.status(400).json({ message: 'No station is assigned to this admin account.' });
     const slot = await Slot.findOne({ _id: req.params.id, stationId: station._id });
     if (!slot) return res.status(404).json({ message: 'Slot not found for this station.' });
-    if (!['Available', 'Occupied', 'Reserved'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid slot status.' });
+    if (!['Available', 'Occupied', 'Reserved', 'Maintenance'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid slot status.' });
+    if (req.body.status === 'Maintenance' && slot.currentBookingId) return res.status(409).json({ message: 'This pump has an active booking and cannot be put into maintenance.' });
     slot.status = req.body.status;
     await slot.save();
     res.json({ slot });
