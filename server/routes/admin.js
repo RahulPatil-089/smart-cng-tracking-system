@@ -26,15 +26,20 @@ router.get('/dashboard', async (req, res, next) => {
   try {
     const station = await getStation(req);
     if (!station) return res.status(400).json({ message: 'No station is assigned to this admin account.' });
-    const today = new Date().toISOString().slice(0, 10);
-    const [todayBookings, completed, cancelled, queue, slots] = await Promise.all([
-      Booking.find({ stationId: station._id, bookingDate: today }).populate('userId', 'name phone').populate('slotId', 'slotNumber').sort({ startTime: 1 }).lean(),
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const horizon = new Date(now);
+    horizon.setDate(horizon.getDate() + 30);
+    const throughDate = `${horizon.getFullYear()}-${String(horizon.getMonth() + 1).padStart(2, '0')}-${String(horizon.getDate()).padStart(2, '0')}`;
+    const [upcomingBookings, todayBookingCount, completed, cancelled, queue, slots] = await Promise.all([
+      Booking.find({ stationId: station._id, bookingDate: { $gte: today, $lte: throughDate } }).populate('userId', 'name phone').populate('slotId', 'slotNumber').sort({ bookingDate: 1, startTime: 1 }).lean(),
+      Booking.countDocuments({ stationId: station._id, bookingDate: today }),
       Booking.countDocuments({ stationId: station._id, bookingDate: today, status: 'Completed' }),
       Booking.countDocuments({ stationId: station._id, bookingDate: today, status: 'Cancelled' }),
       Queue.find({ stationId: station._id, status: { $in: ['Waiting', 'Refueling'] } }).populate('userId', 'name phone').sort({ position: 1 }).lean(),
       Slot.find({ stationId: station._id }).sort({ slotNumber: 1 }).lean()
     ]);
-    res.json({ station, stats: { todayBookings: todayBookings.length, completed, cancelled, queue: queue.filter(q => q.status === 'Waiting').length }, bookings: todayBookings, queue, slots });
+    res.json({ station, stats: { todayBookings: todayBookingCount, completed, cancelled, queue: queue.filter(q => q.status === 'Waiting').length }, bookings: upcomingBookings, queue, slots });
   } catch (error) { next(error); }
 });
 
