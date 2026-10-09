@@ -43,6 +43,8 @@
 @layer utilities {
   .bg-slate-50 { background-color: #0b1220 !important; }
   .bg-white { background-color: rgba(17, 27, 44, .88) !important; }
+  .bg-slate-950 { background-color: #070d19 !important; }
+  .border-slate-800 { border-color: rgba(148, 163, 184, .18) !important; }
   .border-slate-200 { border-color: rgba(148, 163, 184, .18) !important; }
   .border-slate-100 { border-color: rgba(148, 163, 184, .12) !important; }
   .text-ink { color: #e5edf7 !important; }
