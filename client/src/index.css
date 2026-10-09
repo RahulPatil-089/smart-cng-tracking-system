@@ -46,6 +46,7 @@
   .border-slate-200 { border-color: rgba(148, 163, 184, .18) !important; }
   .border-slate-100 { border-color: rgba(148, 163, 184, .12) !important; }
   .text-ink { color: #e5edf7 !important; }
+  .text-slate-900 { color: #f1f5f9 !important; }
   .text-slate-800, .text-slate-700 { color: #dbe6f4 !important; }
   .text-slate-600, .text-slate-500 { color: #9aabc1 !important; }
   .text-slate-400 { color: #8190a6 !important; }
