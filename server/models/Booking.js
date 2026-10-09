@@ -9,7 +9,7 @@ const bookingSchema = new mongoose.Schema({
   bookingDate: { type: String, required: true },
   startTime: { type: String, required: true },
   endTime: { type: String, required: true },
-  status: { type: String, enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Expired'], default: 'Confirmed', index: true },
+  status: { type: String, enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled', 'Expired', 'Unvisited'], default: 'Confirmed', index: true },
   qrCode: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
