@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const queueSchema = new mongoose.Schema({
   stationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Station', required: true, index: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', default: null, index: true },
   vehicleNumber: { type: String, required: true, uppercase: true, trim: true },
   position: { type: Number, required: true, min: 1 },
   estimatedWaitTime: { type: Number, required: true, min: 0 },
@@ -11,5 +12,6 @@ const queueSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 queueSchema.index({ stationId: 1, status: 1, position: 1 });
+queueSchema.index({ bookingId: 1 }, { unique: true, partialFilterExpression: { bookingId: { $type: 'objectId' } } });
 
 export default mongoose.model('Queue', queueSchema);
