@@ -4,6 +4,7 @@ import Station from '../models/Station.js';
 import Slot from '../models/Slot.js';
 import Booking from '../models/Booking.js';
 import Queue from '../models/Queue.js';
+import { stationDateString } from '../utils/stationTime.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -116,7 +117,7 @@ router.put('/bookings/:id/status', async (req, res, next) => {
       return res.status(409).json({ message: `A ${booking.status.toLowerCase()} booking cannot be changed to ${requestedStatus.toLowerCase()}.` });
     }
     if (requestedStatus === 'Completed') {
-      const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+      const today = stationDateString();
       if (booking.bookingDate !== today) return res.status(409).json({ message: 'A booking can only be completed on its scheduled date.' });
       const refuelingDone = await Queue.findOne({ bookingId: booking._id, stationId: station._id, userId: booking.userId, status: 'Completed' });
       if (!refuelingDone) return res.status(409).json({ message: 'Complete refueling for this exact booking in the live queue first.' });
