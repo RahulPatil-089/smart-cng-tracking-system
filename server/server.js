@@ -12,6 +12,7 @@ import queueRoutes from './routes/queue.js';
 import adminRoutes from './routes/admin.js';
 import systemAdminRoutes from './routes/systemAdmin.js';
 import Booking from './models/Booking.js';
+import { stationDateString } from './utils/stationTime.js';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -32,11 +33,8 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: 'Internal server error' });
 });
 
-function localDateString(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
 async function expireUnvisitedBookings() {
-  const today = localDateString();
+  const today = stationDateString();
   const result = await Booking.updateMany(
     { bookingDate: { $lt: today }, status: { $in: ['Pending', 'Confirmed'] } },
     { $set: { status: 'Unvisited' } }
