@@ -3,14 +3,12 @@ import mongoose from 'mongoose';
 import Queue from '../models/Queue.js';
 import Booking from '../models/Booking.js';
 import Station from '../models/Station.js';
+import { stationDateString } from '../utils/stationTime.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 const ACTIVE_BOOKING = ['Pending', 'Confirmed'];
 
-function localDateString(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
 
 async function refreshStationQueue(stationId) {
   const station = await Station.findById(stationId);
@@ -54,7 +52,7 @@ router.post('/stations/:id/queue', protect, async (req, res, next) => {
     const existing = await Queue.findOne({ stationId: station._id, userId: req.user._id, status: { $in: ['Waiting', 'Refueling'] } });
     if (existing) return res.status(409).json({ message: 'You are already in this station queue.', queue: existing });
 
-    const today = localDateString();
+    const today = stationDateString();
     let booking = null;
     if (req.body.bookingId) {
       booking = await Booking.findOne({
@@ -121,7 +119,7 @@ router.put('/queue/:id/status', protect, authorize('station_admin', 'system_admi
       if (queue.bookingId) {
         const booking = await Booking.findOne({ _id: queue.bookingId, stationId: queue.stationId, userId: queue.userId });
         if (!booking) return res.status(409).json({ message: 'Linked booking could not be verified.' });
-        if (booking.bookingDate !== localDateString()) return res.status(409).json({ message: 'Refueling can only complete on the booking date.' });
+        if (booking.bookingDate !== stationDateString()) return res.status(409).json({ message: 'Refueling can only complete on the booking date.' });
         if (booking.status === 'Unvisited' || booking.status === 'Cancelled' || booking.status === 'Expired') {
           return res.status(409).json({ message: `A ${booking.status.toLowerCase()} booking cannot be completed.` });
         }
