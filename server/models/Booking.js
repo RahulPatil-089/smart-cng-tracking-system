@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
-  bookingId: { type: String, required: true, unique: true, index: true },
+  bookingId: { type: String, required: true, unique: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   stationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Station', required: true, index: true },
   slotId: { type: mongoose.Schema.Types.ObjectId, ref: 'Slot', required: true },
