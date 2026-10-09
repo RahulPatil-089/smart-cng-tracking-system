@@ -15,4 +15,5 @@ const bookingSchema = new mongoose.Schema({
 });
 
 bookingSchema.index({ slotId: 1, bookingDate: 1, startTime: 1, status: 1 });
+bookingSchema.index({ stationId: 1, bookingDate: 1, status: 1 });
 export default mongoose.model('Booking', bookingSchema);
