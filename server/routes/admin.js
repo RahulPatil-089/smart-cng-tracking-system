@@ -4,6 +4,7 @@ import Station from '../models/Station.js';
 import Slot from '../models/Slot.js';
 import Booking from '../models/Booking.js';
 import Queue from '../models/Queue.js';
+import { stationDateString } from '../utils/stationTime.js';
 import { protect, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -28,7 +29,6 @@ router.get('/dashboard', async (req, res, next) => {
     if (!station) return res.status(400).json({ message: 'No station is assigned to this admin account.' });
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    await Booking.updateMany({ stationId: station._id, bookingDate: { $lt: today }, status: { $in: ['Pending', 'Confirmed'] } }, { $set: { status: 'Unvisited' } });
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const horizon = new Date(now);
     horizon.setDate(horizon.getDate() + 30);
@@ -111,16 +111,21 @@ router.put('/bookings/:id/status', async (req, res, next) => {
     const booking = await Booking.findOne(bookingLookup(req.params.id, station._id));
     if (!booking) return res.status(404).json({ message: 'Booking not found.' });
     if (!['Confirmed', 'Completed', 'Cancelled'].includes(req.body.status)) return res.status(400).json({ message: 'Invalid booking status.' });
-    if (req.body.status === 'Completed') {
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      if (booking.bookingDate !== today) return res.status(409).json({ message: 'A booking can only be completed on its scheduled date.' });
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const refuelingDone = await Queue.findOne({ stationId: station._id, userId: booking.userId, status: 'Completed', createdAt: { $gte: todayStart } });
-      if (!refuelingDone) return res.status(409).json({ message: 'Complete the customer refueling in the live queue first.' });
+    const requestedStatus = req.body.status;
+    if (['Completed', 'Cancelled', 'Unvisited', 'Expired'].includes(booking.status)) {
+      if (booking.status === requestedStatus) return res.json({ booking });
+      return res.status(409).json({ message: `A ${booking.status.toLowerCase()} booking cannot be changed to ${requestedStatus.toLowerCase()}.` });
     }
-    if (booking.status === 'Unvisited') return res.status(409).json({ message: 'Unvisited bookings cannot be changed to completed.' });
-    booking.status = req.body.status;
+    if (requestedStatus === 'Completed') {
+      const today = stationDateString();
+      if (booking.bookingDate !== today) return res.status(409).json({ message: 'A booking can only be completed on its scheduled date.' });
+      const refuelingDone = await Queue.findOne({ bookingId: booking._id, stationId: station._id, userId: booking.userId, status: 'Completed' });
+      if (!refuelingDone) return res.status(409).json({ message: 'Complete refueling for this exact booking in the live queue first.' });
+    }
+    if (requestedStatus === 'Cancelled') {
+      await Queue.updateMany({ bookingId: booking._id, status: { $in: ['Waiting', 'Refueling'] } }, { $set: { status: 'Cancelled' } });
+    }
+    booking.status = requestedStatus;
     await booking.save();
     res.json({ booking });
   } catch (error) { next(error); }
