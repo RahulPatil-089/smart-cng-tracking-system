@@ -47,6 +47,10 @@ router.post('/', protect, async (req, res) => {
     if (!stationId || !slotId || !bookingDate || !startTime || !endTime) return res.status(400).json({ message: 'Station, slot, date and time are required' });
     const today = localDateString();
     if (bookingDate < today) return res.status(400).json({ message: 'Booking date cannot be in the past' });
+    const latestAllowed = new Date();
+    latestAllowed.setDate(latestAllowed.getDate() + 2);
+    const latestBookingDate = localDateString(latestAllowed);
+    if (bookingDate > latestBookingDate) return res.status(400).json({ message: 'Bookings can only be made for today and the next 2 days.' });
     if (!/^\d{2}:\d{2}$/.test(startTime) || !/^\d{2}:\d{2}$/.test(endTime)) return res.status(400).json({ message: 'Invalid booking time' });
     if (startTime >= endTime) return res.status(400).json({ message: 'End time must be after start time' });
     if (bookingDate === today && new Date(`${bookingDate}T${startTime}:00`).getTime() <= Date.now()) return res.status(400).json({ message: 'The selected time has already passed. Choose a future slot.' });
