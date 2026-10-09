@@ -6,18 +6,13 @@ import Station from '../models/Station.js';
 import Slot from '../models/Slot.js';
 import Booking from '../models/Booking.js';
 import Queue from '../models/Queue.js';
+import { stationDateString } from '../utils/stationTime.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 const ACTIVE = ['Pending', 'Confirmed'];
 const CANCELLATION_MINUTES = 15;
 
-function localDateString(date = new Date()) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 function bookingLookup(id, userId, statuses = null) {
   const idFilter = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { bookingId: id }] } : { bookingId: id };
   return { ...idFilter, userId, ...(statuses ? { status: { $in: statuses } } : {}) };
@@ -56,7 +51,7 @@ router.post('/', protect, async (req, res, next) => {
     if (!mongoose.isValidObjectId(stationId) || !mongoose.isValidObjectId(slotId)) return res.status(400).json({ message: 'Invalid station or slot ID.' });
     if (!/^\d{4}-\d{2}-\d{2}$/.test(bookingDate) || !validTime(startTime) || !validTime(endTime)) return res.status(400).json({ message: 'Invalid booking date or time.' });
     if (startTime >= endTime) return res.status(400).json({ message: 'End time must be after start time.' });
-    const today = localDateString();
+    const today = stationDateString();
     if (bookingDate < today) return res.status(400).json({ message: 'Booking date cannot be in the past.' });
     const latestAllowed = new Date();
     latestAllowed.setDate(latestAllowed.getDate() + 2);
